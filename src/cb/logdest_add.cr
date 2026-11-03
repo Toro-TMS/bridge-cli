@@ -2,7 +2,7 @@ require "./action"
 
 module CB
   class LogDestinationAdd < APIAction
-    eid_setter cluster_id
+    cluster_identifier_setter cluster_id
     i32_setter port
     property host : String?
     property template : String?
@@ -12,7 +12,8 @@ module CB
 
     def run
       validate
-      client.add_log_destination(cluster_id, {
+      id = client.resolve_cluster_id cluster_id[:cluster]
+      client.add_log_destination(id, {
         "host":                    host,
         "port":                    port,
         "template":                template,
@@ -22,12 +23,12 @@ module CB
       })
 
       output << "added new log destination for "
-      output << "#{cluster_id}".colorize.t_id << '\n'
+      output << id.colorize.t_id << '\n'
     end
 
     def validate
       check_required_args do |missing|
-        missing << "cluster" unless cluster_id
+        missing << "cluster" if cluster_id.empty?
         missing << "port" unless port
         missing << "desc" unless description
         missing << "host" unless host

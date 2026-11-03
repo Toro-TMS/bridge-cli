@@ -10,10 +10,12 @@ class CB::ClusterCreate < CB::APIAction
   i32_setter storage
   eid_setter team, "team id"
   eid_setter network, "network id"
-  eid_setter replica, "replica id"
-  eid_setter fork, "fork id"
+  identifier_setter replica
+  identifier_setter fork
   property at : Time?
   i32_setter maintenance_window_start
+
+  @source_cluster_id : String?
 
   private def validate_fork_and_replica
     raise Error.new "Cannot use both '--fork' and '--replica' at the same time." if fork && replica
@@ -34,6 +36,7 @@ class CB::ClusterCreate < CB::APIAction
 
     if id = fork || replica
       source = client.get_cluster id
+      @source_cluster_id = source.id
       @name ||= "#{fork ? "Fork" : "Replica"} of #{source.name}"
     else
       @storage ||= 100
@@ -72,14 +75,14 @@ class CB::ClusterCreate < CB::APIAction
 
     cluster = if fork
                 @client.create_fork CB::Client::ForkCreateParams.new(**params.merge(
-                  cluster_id: @fork.to_s,
+                  cluster_id: @source_cluster_id.to_s,
                   is_ha: @ha,
                   storage: @storage,
                   target_time: @at,
                 ))
               elsif replica
                 @client.create_replica CB::Client::ReplicaCreateParams.new(**params.merge(
-                  cluster_id: @replica.to_s,
+                  cluster_id: @source_cluster_id.to_s,
                 ))
               else
                 @client.create_cluster CB::Client::ClusterCreateParams.new(**params.merge(

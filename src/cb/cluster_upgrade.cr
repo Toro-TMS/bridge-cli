@@ -1,14 +1,14 @@
 require "./action"
 
 abstract class CB::Upgrade < CB::APIAction
-  eid_setter cluster_id
+  cluster_identifier_setter cluster_id
   property confirmed : Bool = false
 
   abstract def run
 
   def validate
     check_required_args do |missing|
-      missing << "cluster" unless cluster_id
+      missing << "cluster" if cluster_id.empty?
     end
   end
 end
@@ -43,7 +43,7 @@ class CB::UpgradeStart < CB::UpgradeAction
   def run
     validate
 
-    c = client.get_cluster cluster_id
+    c = client.get_cluster cluster_id[:cluster]
     confirm_action("upgrade", "cluster", c.name) unless confirmed
     if !ha.nil?
       wanted = ""
@@ -67,7 +67,7 @@ class CB::UpgradeStart < CB::UpgradeAction
         output.puts "  Operation not recognized: #{operation.inspect}"
       end
     else
-      client.upgrade_cluster self
+      client.upgrade_cluster c.id, self
       output.puts "  Cluster #{c.id.colorize.t_id} upgrade started."
     end
   end
@@ -84,10 +84,10 @@ class CB::MaintenanceCreate < CB::UpgradeAction
   def run
     validate
 
-    c = client.get_cluster cluster_id
+    c = client.get_cluster cluster_id[:cluster]
     confirm_action("create maintenance", "cluster", c.name) unless confirmed
 
-    client.upgrade_cluster self
+    client.upgrade_cluster c.id, self
     output.puts "  Maintenance created for Cluster #{c.id.colorize.t_id}."
   end
 end
@@ -97,10 +97,10 @@ class CB::MaintenanceCancel < CB::Upgrade
   def run
     validate
 
-    c = client.get_cluster cluster_id
+    c = client.get_cluster cluster_id[:cluster]
     print_team_slash_cluster c
 
-    operations = client.upgrade_cluster_status cluster_id
+    operations = client.upgrade_cluster_status c.id
     all_upgrades = operations.select { |op| op.flavor != CB::Model::Operation::Flavor::HAChange }
     maintenance = all_upgrades.find { |op| op.flavor == CB::Model::Operation::Flavor::Maintenance }
     unless maintenance
@@ -111,7 +111,7 @@ class CB::MaintenanceCancel < CB::Upgrade
       return
     end
 
-    client.upgrade_cluster_cancel cluster_id
+    client.upgrade_cluster_cancel c.id
     output << "  #{maintenance.flavor.colorize.bold} operation cancelled\n"
   end
 end
@@ -121,10 +121,10 @@ class CB::UpgradeCancel < CB::Upgrade
   def run
     validate
 
-    c = client.get_cluster cluster_id
+    c = client.get_cluster cluster_id[:cluster]
     print_team_slash_cluster c
 
-    operations = client.upgrade_cluster_status cluster_id
+    operations = client.upgrade_cluster_status c.id
     all_upgrades = operations.select { |op| op.flavor != CB::Model::Operation::Flavor::HAChange }
     operation = all_upgrades.find { |op| op.flavor != CB::Model::Operation::Flavor::Maintenance }
     unless operation
@@ -135,7 +135,7 @@ class CB::UpgradeCancel < CB::Upgrade
       return
     end
 
-    client.upgrade_cluster_cancel cluster_id
+    client.upgrade_cluster_cancel c.id
     output << "  #{operation.flavor.colorize.bold} operation cancelled\n"
   end
 end
@@ -147,10 +147,10 @@ class CB::UpgradeStatus < CB::Upgrade
   def run
     validate
 
-    c = client.get_cluster cluster_id
+    c = client.get_cluster cluster_id[:cluster]
     print_team_slash_cluster c
 
-    operations = client.upgrade_cluster_status cluster_id
+    operations = client.upgrade_cluster_status c.id
 
     if maintenance_only
       operations = operations.select { |op| op.flavor != CB::Model::Operation::Flavor::HAChange }
@@ -213,10 +213,10 @@ class CB::MaintenanceUpdate < CB::UpdateUpgradeAction
   def run
     validate
 
-    c = client.get_cluster cluster_id
+    c = client.get_cluster cluster_id[:cluster]
     print_team_slash_cluster c
 
-    operations = client.upgrade_cluster_status cluster_id
+    operations = client.upgrade_cluster_status c.id
     all_upgrades = operations.select { |op| op.flavor != CB::Model::Operation::Flavor::HAChange }
     maintenance = all_upgrades.find { |op| op.flavor == CB::Model::Operation::Flavor::Maintenance }
     unless maintenance
@@ -229,7 +229,7 @@ class CB::MaintenanceUpdate < CB::UpdateUpgradeAction
 
     confirm_action("update pending maintenance", "cluster", c.name) unless confirmed
 
-    client.update_upgrade_cluster self
+    client.update_upgrade_cluster c.id, self
     output.puts "  maintenance updated."
   end
 end
@@ -239,10 +239,10 @@ class CB::UpgradeUpdate < CB::UpdateUpgradeAction
   def run
     validate
 
-    c = client.get_cluster cluster_id
+    c = client.get_cluster cluster_id[:cluster]
     print_team_slash_cluster c
 
-    operations = client.upgrade_cluster_status cluster_id
+    operations = client.upgrade_cluster_status c.id
     all_upgrades = operations.select { |op| op.flavor != CB::Model::Operation::Flavor::HAChange }
     operation = all_upgrades.find { |op| op.flavor != CB::Model::Operation::Flavor::Maintenance }
     unless operation
@@ -255,7 +255,7 @@ class CB::UpgradeUpdate < CB::UpdateUpgradeAction
 
     confirm_action("update pending upgrade", "cluster", c.name) unless confirmed
 
-    client.update_upgrade_cluster self
+    client.update_upgrade_cluster c.id, self
     output.puts "  upgrade updated."
   end
 end

@@ -21,7 +21,18 @@ Spectator.describe RoleCreate do
 
     action.call
 
-    expect(&.output).to look_like "Role #{user_role.name} created on cluster #{action.cluster_id}."
+    expect(&.output).to look_like "Role #{user_role.name} created on cluster #{action.cluster_id[:cluster]}."
+  end
+
+  it "#run accepts a cluster name" do
+    action.cluster_id = "test-cluster"
+
+    expect(client).to receive(:resolve_cluster_id).and_return "pkdpq6yynjgjbps4otxd7il2u4"
+    expect(client).to receive(:create_role).and_return user_role
+
+    action.call
+
+    expect(&.output).to look_like "Role #{user_role.name} created on cluster pkdpq6yynjgjbps4otxd7il2u4."
   end
 end
 
@@ -112,7 +123,6 @@ Spectator.describe RoleUpdate do
 
   describe "#validate" do
     it "validates that required arguments are present" do
-      action.cluster_id = nil
       expect(&.validate).to raise_error Program::Error, /Missing required argument/
 
       action.cluster_id = "pkdpq6yynjgjbps4otxd7il2u4"
@@ -133,7 +143,7 @@ Spectator.describe RoleUpdate do
       expect(client).to receive(:get_account).and_return account
       expect(client).to receive(:update_role).and_return role
       action.call
-      expect(&.output).to look_like "Role #{action.role} updated on cluster #{action.cluster_id}."
+      expect(&.output).to look_like "Role #{action.role} updated on cluster #{action.cluster_id[:cluster]}."
     end
   end
 end
@@ -148,7 +158,6 @@ Spectator.describe RoleDelete do
 
   describe "#validate" do
     it "ensures required arguments are present" do
-      action.cluster_id = nil
       expect(&.validate).to raise_error Program::Error, /Missing required argument/
 
       action.cluster_id = "pkdpq6yynjgjbps4otxd7il2u4"
@@ -171,7 +180,7 @@ Spectator.describe RoleDelete do
 
       action.call
 
-      expect(&.output).to look_like "Role #{action.role} deleted from cluster #{action.cluster_id}."
+      expect(&.output).to look_like "Role #{action.role} deleted from cluster #{action.cluster_id[:cluster]}."
     end
   end
 end

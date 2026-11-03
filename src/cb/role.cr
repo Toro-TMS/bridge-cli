@@ -2,22 +2,23 @@ require "./action"
 require "./table"
 
 abstract class CB::RoleAction < CB::APIAction
-  eid_setter cluster_id
+  cluster_identifier_setter cluster_id
+
+  def validate
+    check_required_args do |missing|
+      missing << "cluster" if cluster_id.empty?
+    end
+  end
 end
 
 # Action to create a cluster role for the calling user.
 class CB::RoleCreate < CB::RoleAction
-  def validate
-    check_required_args do |missing|
-      missing << "cluster" unless cluster_id
-    end
-  end
-
   def run
     validate
 
-    role = client.create_role @cluster_id
-    output << "Role #{role.name} created on cluster #{@cluster_id}.\n"
+    id = client.resolve_cluster_id cluster_id[:cluster]
+    role = client.create_role id
+    output << "Role #{role.name} created on cluster #{id}.\n"
   end
 end
 
@@ -32,19 +33,14 @@ class CB::RoleList < CB::RoleAction
 
   private property team : CB::Model::Team?
 
-  def validate
-    check_required_args do |missing|
-      missing << "cluster" unless cluster_id
-    end
-  end
-
   def run
     validate
 
-    @cluster = client.get_cluster @cluster_id
-    @team = client.get_team @cluster.try &.team_id
+    c = client.get_cluster cluster_id[:cluster]
+    @cluster = c
+    @team = client.get_team c.team_id
 
-    r = client.list_roles @cluster_id
+    r = client.list_roles c.id
 
     r.each do |role|
       @roles << {
@@ -94,8 +90,8 @@ class CB::RoleUpdate < CB::RoleAction
   bool_setter? rotate_password
 
   def validate
+    super
     check_required_args do |missing|
-      missing << "cluster" unless cluster_id
       missing << "name" unless role
     end
   end
@@ -109,9 +105,10 @@ class CB::RoleUpdate < CB::RoleAction
 
     flavor = read_only ? "read" : "write" unless read_only.nil?
 
-    role = client.update_role @cluster_id, @role, {flavor: flavor, rotate_password: rotate_password}
+    id = client.resolve_cluster_id cluster_id[:cluster]
+    role = client.update_role id, @role, {flavor: flavor, rotate_password: rotate_password}
 
-    output << "Role #{role.name} updated on cluster #{@cluster_id}.\n"
+    output << "Role #{role.name} updated on cluster #{id}.\n"
   end
 end
 
@@ -119,8 +116,8 @@ class CB::RoleDelete < CB::RoleAction
   role_setter? role
 
   def validate
+    super
     check_required_args do |missing|
-      missing << "cluster" unless cluster_id
       missing << "name" unless role
     end
   end
@@ -132,7 +129,8 @@ class CB::RoleDelete < CB::RoleAction
       @role = Role.new "u_" + client.get_account.id
     end
 
-    role = client.delete_role @cluster_id, @role
-    output << "Role #{role.name} deleted from cluster #{@cluster_id}.\n"
+    id = client.resolve_cluster_id cluster_id[:cluster]
+    role = client.delete_role id, @role
+    output << "Role #{role.name} deleted from cluster #{id}.\n"
   end
 end
