@@ -3,19 +3,19 @@ require "./table"
 
 module CB
   class SavedQueryList < APIAction
-    eid_setter cluster_id
+    cluster_identifier_setter cluster_id
     format_setter format
     bool_setter? no_header
 
     def validate
       check_required_args do |missing|
-        missing << "cluster" unless cluster_id
+        missing << "cluster" if cluster_id.empty?
       end
     end
 
     def run
       validate
-      queries = client.get_saved_queries cluster_id
+      queries = client.get_saved_queries client.resolve_cluster_id(cluster_id[:cluster])
 
       if queries.empty?
         output.puts "no saved queries"
@@ -52,13 +52,13 @@ module CB
   end
 
   class SavedQueryExport < APIAction
-    eid_setter cluster_id
+    cluster_identifier_setter cluster_id
     eid_setter query_id
     property file : String?
 
     def validate
       check_required_args do |missing|
-        missing << "cluster" unless cluster_id
+        missing << "cluster" if cluster_id.empty?
         missing << "query" unless query_id
       end
     end
@@ -78,13 +78,13 @@ module CB
   end
 
   class SavedQueryImport < APIAction
-    eid_setter cluster_id
+    cluster_identifier_setter cluster_id
     property file : String?
     property name : String?
 
     def validate
       check_required_args do |missing|
-        missing << "cluster" unless cluster_id
+        missing << "cluster" if cluster_id.empty?
         missing << "file" unless file
         missing << "name" unless name
       end
@@ -100,7 +100,7 @@ module CB
 
       query = client.create_saved_query(
         Client::SavedQueryCreateParams.new(
-          cluster_id: cluster_id,
+          cluster_id: client.resolve_cluster_id(cluster_id[:cluster]),
           name: @name,
           sql: sql,
         )
@@ -111,12 +111,12 @@ module CB
   end
 
   class SavedQueryDestroy < APIAction
-    eid_setter cluster_id
+    cluster_identifier_setter cluster_id
     eid_setter query_id
 
     def validate
       check_required_args do |missing|
-        missing << "cluster" unless cluster_id
+        missing << "cluster" if cluster_id.empty?
         missing << "query" unless query_id
       end
     end

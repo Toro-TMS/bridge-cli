@@ -47,14 +47,19 @@ module CB
 
     # Retrieve the cluster by id or by name.
     def get_cluster(id : Identifier)
-      return get_cluster id.to_s if id.eid?
-      get_cluster_by_name(id)
+      get_cluster resolve_cluster_id(id)
     end
 
-    private def get_cluster_by_name(id : Identifier)
+    # Resolve a cluster identifier (id or name) to the cluster id.
+    def resolve_cluster_id(id : Identifier) : String
+      return id.to_s if id.eid?
+      find_cluster_by_name(id).id
+    end
+
+    private def find_cluster_by_name(id : Identifier)
       cluster = get_clusters(get_teams, true).find { |c| id == c.name }
       raise Program::Error.new "cluster #{id.to_s.colorize.t_name} does not exist." unless cluster
-      get_cluster cluster.id
+      cluster
     end
 
     # TODO (abrightwell): track down why this must be nilable. Seems reasonable
@@ -118,8 +123,7 @@ module CB
     end
 
     def detach_cluster(id : Identifier)
-      cluster_id = id.eid? ? id : get_cluster_by_name(id).id
-      resp = put "clusters/#{cluster_id}/actions/detach"
+      resp = put "clusters/#{resolve_cluster_id id}/actions/detach"
       CB::Model::Cluster.from_json resp.body
     end
 
@@ -150,8 +154,8 @@ module CB
     end
 
     # https://crunchybridgeapi.docs.apiary.io/#reference/0/clustersclusteridupgrade/upgrade-cluster
-    def upgrade_cluster(uc)
-      resp = post "clusters/#{uc.cluster_id}/upgrade", {
+    def upgrade_cluster(cluster_id : String, uc)
+      resp = post "clusters/#{cluster_id}/upgrade", {
         is_ha:               uc.ha,
         plan_id:             uc.plan,
         postgres_version_id: uc.postgres_version,
@@ -162,8 +166,8 @@ module CB
     end
 
     # https://crunchybridgeapi.docs.apiary.io/#reference/0/clustersclusteridupgrade/update-upgrade-cluster
-    def update_upgrade_cluster(uc)
-      resp = put "clusters/#{uc.cluster_id}/upgrade", {
+    def update_upgrade_cluster(cluster_id : String, uc)
+      resp = put "clusters/#{cluster_id}/upgrade", {
         plan_id:                        uc.plan,
         postgres_version_id:            uc.postgres_version,
         storage:                        uc.storage,
@@ -184,7 +188,11 @@ module CB
     end
 
     # https://crunchybridgeapi.docs.apiary.io/#reference/0/clustersclusterid/update-cluster
-    def update_cluster(cluster_id, body)
+    def update_cluster(id : Identifier, body)
+      update_cluster resolve_cluster_id(id), body
+    end
+
+    def update_cluster(cluster_id : String, body)
       resp = patch "clusters/#{cluster_id}", body
       CB::Model::Cluster.from_json resp.body
     end
@@ -215,13 +223,13 @@ module CB
     end
 
     def destroy_cluster(id : Identifier)
-      resp = delete "clusters/#{id}"
+      resp = delete "clusters/#{resolve_cluster_id id}"
       CB::Model::Cluster.from_json resp.body
     end
 
     # https://crunchybridgeapi.docs.apiary.io/#reference/0/clustersclusteridactionsdisable-ha/disable-high-availability
     def disable_ha(id : Identifier) : CB::Model::Operation?
-      resp = put "clusters/#{id}/actions/disable-ha"
+      resp = put "clusters/#{resolve_cluster_id id}/actions/disable-ha"
       json = JSON.parse(resp.body)
       return CB::Model::Operation.from_json resp.body if (flavor = json["flavor"]?) && !flavor.as_s.empty?
       nil
@@ -229,35 +237,34 @@ module CB
 
     # https://crunchybridgeapi.docs.apiary.io/#reference/0/clustersclusteridactionsenable-ha/enable-high-availability
     def enable_ha(id : Identifier) : CB::Model::Operation?
-      resp = put "clusters/#{id}/actions/enable-ha"
+      resp = put "clusters/#{resolve_cluster_id id}/actions/enable-ha"
       json = JSON.parse(resp.body)
       return CB::Model::Operation.from_json resp.body if (flavor = json["flavor"]?) && !flavor.as_s.empty?
       nil
     end
 
     # https://crunchybridgeapi.docs.apiary.io/#reference/0/clustersclusteridrestart/restart-cluster
-    def restart_cluster(id, service : String)
-      resp = put "clusters/#{id}/actions/restart", {service: service}
+    def restart_cluster(id : Identifier, service : String)
+      resp = put "clusters/#{resolve_cluster_id id}/actions/restart", {service: service}
       CB::Model::Cluster.from_json resp.body
     end
 
     jrecord Message, message : String = ""
 
     def get_tempkey(id : Identifier)
-      cluster_id = id.eid? ? id.to_s : get_cluster_by_name(id).id
-      resp = post "clusters/#{cluster_id}/tempkeys"
+      resp = post "clusters/#{resolve_cluster_id id}/tempkeys"
       Tempkey.from_json resp.body
     end
 
     # https://crunchybridgeapi.docs.apiary.io/#reference/0/clustersclusteridactionssuspend/suspend-cluster
     def suspend_cluster(id : Identifier)
-      resp = put "clusters/#{id}/actions/suspend"
+      resp = put "clusters/#{resolve_cluster_id id}/actions/suspend"
       CB::Model::Cluster.from_json resp.body
     end
 
     # https://crunchybridgeapi.docs.apiary.io/#reference/0/clustersclusteridactionsresume/resume-cluster
     def resume_cluster(id : Identifier)
-      resp = put "clusters/#{id}/actions/resume"
+      resp = put "clusters/#{resolve_cluster_id id}/actions/resume"
       CB::Model::Cluster.from_json resp.body
     end
   end

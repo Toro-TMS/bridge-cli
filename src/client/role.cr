@@ -4,9 +4,7 @@ module CB
   class Client
     # https://crunchybridgeapi.docs.apiary.io/#reference/0/clustersclusteridroles/create-role
     def create_role(cluster_id : Identifier)
-      return create_role(cluster_id.to_s) if cluster_id.eid?
-      c = get_cluster_by_name(cluster_id)
-      create_role(c.id)
+      create_role resolve_cluster_id(cluster_id)
     end
 
     def create_role(cluster_id)
@@ -16,9 +14,7 @@ module CB
 
     # https://crunchybridgeapi.docs.apiary.io/#reference/0/clustersclusteridrolesrolename/get-role
     def get_role(cluster_id : Identifier, role_name : String)
-      return get_role(cluster_id.to_s, role_name) if cluster_id.eid?
-      c = get_cluster_by_name(cluster_id)
-      get_role(c.id, role_name)
+      get_role resolve_cluster_id(cluster_id), role_name
     end
 
     def get_role(cluster_id, role_name)

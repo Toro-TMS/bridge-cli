@@ -48,3 +48,30 @@ Spectator.describe CB::Client do
     end
   end
 end
+
+Spectator.describe CB::Client do
+  mock_client
+
+  let(team) { Factory.team }
+  let(cluster) { Factory.cluster(name: "test-cluster") }
+
+  describe "#resolve_cluster_id" do
+    it "returns an id untouched" do
+      expect(client.resolve_cluster_id(CB::Identifier.new cluster.id)).to eq cluster.id
+    end
+
+    it "looks up a name" do
+      expect(client).to receive(:get_teams).and_return [team]
+      expect(client).to receive(:get_clusters).and_return [cluster]
+
+      expect(client.resolve_cluster_id(CB::Identifier.new cluster.name)).to eq cluster.id
+    end
+
+    it "raises for an unknown name" do
+      expect(client).to receive(:get_teams).and_return [team]
+      expect(client).to receive(:get_clusters).and_return [cluster]
+
+      expect { client.resolve_cluster_id(CB::Identifier.new "unknown-cluster") }.to raise_error Program::Error, /does not exist/
+    end
+  end
+end

@@ -1,7 +1,7 @@
 class CB::ManageFirewall < CB::APIAction
   Error = Program::Error
 
-  eid_setter cluster_id
+  cluster_identifier_setter cluster_id
   property network_id : String?
   property to_add = [] of String
   property to_remove = [] of String
@@ -15,8 +15,8 @@ class CB::ManageFirewall < CB::APIAction
   end
 
   def run
-    raise Error.new "--cluster not set" unless cluster_id
-    @network_id = @client.get_cluster(cluster_id).network_id
+    raise Error.new "--cluster not set" if cluster_id.empty?
+    @network_id = @client.get_cluster(cluster_id[:cluster]).network_id
     remove_all
     add_all
     display_rules

@@ -2,11 +2,11 @@ require "./action"
 
 module CB
   class LogDestinationList < APIAction
-    eid_setter cluster_id
+    cluster_identifier_setter cluster_id
 
     def run
-      check_required_args { |missing| missing << "cluster" unless cluster_id }
-      dests = client.get_log_destinations cluster_id
+      check_required_args { |missing| missing << "cluster" if cluster_id.empty? }
+      dests = client.get_log_destinations client.resolve_cluster_id(cluster_id[:cluster])
 
       output.tty? ? display_tty(dests) : display_pipe(dests)
     end

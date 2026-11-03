@@ -4,13 +4,13 @@ module CB
   class Client
     # Get configuration parameter value
     def get_configuration_parameter(id : Identifier, name : String)
-      resp = get "clusters/#{id}/configuration-parameters/#{name}"
+      resp = get "clusters/#{resolve_cluster_id id}/configuration-parameters/#{name}"
       Model::ConfigurationParameter.from_json resp.body
     end
 
     # List configuration parameter values.
     def list_configuration_parameters(id : Identifier)
-      resp = get "clusters/#{id}/configuration-parameters"
+      resp = get "clusters/#{resolve_cluster_id id}/configuration-parameters"
       Array(Model::ConfigurationParameter).from_json resp.body, root: "parameters"
     end
 
@@ -21,8 +21,8 @@ module CB
     end
 
     # Update configuration parameter values.
-    def update_configuration_parameters(id, parameters, allow_restart : Bool = false)
-      resp = put "clusters/#{id}/configuration-parameters", {"parameters": parameters, "allow_restart": allow_restart}
+    def update_configuration_parameters(id : Identifier, parameters, allow_restart : Bool = false)
+      resp = put "clusters/#{resolve_cluster_id id}/configuration-parameters", {"parameters": parameters, "allow_restart": allow_restart}
       Array(Model::ConfigurationParameter).from_json resp.body, root: "parameters"
     end
   end

@@ -2,7 +2,7 @@ require "./action"
 
 module CB
   class LogDestinationUpdate < APIAction
-    eid_setter cluster_id
+    cluster_identifier_setter cluster_id
     eid_setter logdest_id
     i32_setter port
     property host : String?
@@ -14,21 +14,22 @@ module CB
     def run
       validate
 
-      existing = client.get_log_destinations(cluster_id).find { |d| d.id == logdest_id }
+      id = client.resolve_cluster_id cluster_id[:cluster]
+      existing = client.get_log_destinations(id).find { |d| d.id == logdest_id }
       unless existing
         raise Program::Error.new "log destination #{logdest_id.colorize.t_id} was not found for this cluster."
       end
 
-      client.update_log_destination(cluster_id, logdest_id, update_body(existing))
+      client.update_log_destination(id, logdest_id, update_body(existing))
 
       output << "updated log destination "
       output << "#{logdest_id}".colorize.t_id << " for "
-      output << "#{cluster_id}".colorize.t_id << '\n'
+      output << id.colorize.t_id << '\n'
     end
 
     def validate
       check_required_args do |missing|
-        missing << "cluster" unless cluster_id
+        missing << "cluster" if cluster_id.empty?
         missing << "logdest" unless logdest_id
       end
     end

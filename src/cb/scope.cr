@@ -2,15 +2,15 @@ require "./action"
 require "./scope_checks/*"
 
 class CB::Scope < CB::APIAction
-  property cluster_id : String?
+  cluster_identifier_setter cluster_id
   property checks : Array(::Scope::Check.class) = [] of ::Scope::Check.class
   property database : String?
   property suite : String?
 
   def run
-    check_required_args { |missing| missing << "cluster" unless cluster_id }
+    check_required_args { |missing| missing << "cluster" if cluster_id.empty? }
 
-    uri = client.get_role(cluster_id, "default").uri
+    uri = client.get_role(cluster_id[:cluster], "default").uri
     raise Error.new "null uri" if uri.nil?
 
     # Accept only SCRAM with Channel Binding.

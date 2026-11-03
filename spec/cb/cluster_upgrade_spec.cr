@@ -43,7 +43,7 @@ Spectator.describe CB::UpgradeStart do
 
       action.call
 
-      expect(&.output).to look_like "  Cluster #{action.cluster_id} upgrade started."
+      expect(&.output).to look_like "  Cluster #{cluster.id} upgrade started."
     end
   end
 end
@@ -71,7 +71,7 @@ Spectator.describe CB::UpgradeStart do
 
     action.call
 
-    expect(&.output).to look_like "  Enabling high availability on cluster #{action.cluster_id}."
+    expect(&.output).to look_like "  Enabling high availability on cluster #{cluster.id}."
   end
 end
 
@@ -100,14 +100,14 @@ Spectator.describe CB::UpgradeStart do
     action.ha = true
     action.call
 
-    expect(&.output).to look_like "  High availability already enabled on cluster #{action.cluster_id}."
+    expect(&.output).to look_like "  High availability already enabled on cluster #{cluster.id}."
   end
 
   it "reports if it's already disabled" do
     action.ha = false
     action.call
 
-    expect(&.output).to look_like "  High availability already disabled on cluster #{action.cluster_id}."
+    expect(&.output).to look_like "  High availability already disabled on cluster #{cluster.id}."
   end
 end
 
@@ -134,7 +134,7 @@ Spectator.describe CB::UpgradeStart do
 
     action.call
 
-    expect(&.output).to look_like "  Disabling high availability on cluster #{action.cluster_id}."
+    expect(&.output).to look_like "  Disabling high availability on cluster #{cluster.id}."
   end
 end
 
@@ -189,7 +189,7 @@ Spectator.describe CB::MaintenanceCreate do
 
       action.call
 
-      expect(&.output).to look_like "  Maintenance created for Cluster #{action.cluster_id}."
+      expect(&.output).to look_like "  Maintenance created for Cluster #{cluster.id}."
     end
   end
 end
